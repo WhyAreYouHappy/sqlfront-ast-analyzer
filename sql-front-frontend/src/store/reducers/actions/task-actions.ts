@@ -2,7 +2,7 @@ import { isAxiosError } from "axios";
 
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { ClueDtoType, ExpectedResultType, QueryRunType, ResultQueryDataType, SubmissionResultType, TaskDataDtoType, TaskDataPayloadType } from "@/shared/types/task-type";
+import { ClueDtoType, DatabaseSchemaResponseType, ExpectedResultType, QueryRunType, ResultQueryDataType, SubmissionResultType, TaskDataDtoType, TaskDataPayloadType } from "@/shared/types/task-type";
 import api from "@/shared/config/axios";
 import strings from "@/shared/consts/strings";
 
@@ -97,6 +97,23 @@ export const getTaskExpectedResultData = createAsyncThunk(
         return rejectWithValue(err.response?.data);
       }
       
+      return rejectWithValue(strings.unexpectedError);
+    }
+  }
+);
+
+export const getDatabaseSchema = createAsyncThunk(
+  "task/getSchema",
+  async (refresh: boolean | undefined, { rejectWithValue }) => {
+    try {
+      const response = await api.get<DatabaseSchemaResponseType>(
+        `${strings.api.databaseSchema}${refresh ? "?refresh=true" : ""}`
+      );
+      return response.data;
+    } catch (err) {
+      if (isAxiosError(err)) {
+        return rejectWithValue(err.response?.data);
+      }
       return rejectWithValue(strings.unexpectedError);
     }
   }

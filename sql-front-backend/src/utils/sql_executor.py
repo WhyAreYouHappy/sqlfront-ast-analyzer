@@ -17,8 +17,67 @@ class SQLExecutor:
         self.engine = create_async_engine(db_url, isolation_level="AUTOCOMMIT")
         self.transaction_engine = create_async_engine(db_url) # For simulating updates
 
+
+    @staticmethod
+    def _clean_query(query: str) -> str:
+        if not query:
+            return ""
+        cleaned = query.strip()
+        while cleaned and (
+            cleaned.endswith(";")
+            or cleaned.endswith(" ")
+            or cleaned.endswith("\n")
+            or cleaned.endswith("\r")
+            or cleaned.endswith("\t")
+        ):
+            cleaned = cleaned.rstrip("; \n\r\t").strip()
+        return cleaned
+
+    @staticmethod
+    def _extract_operation_type(sql: str) -> str:
+        if not sql:
+            return "DDL"
+        clean = sql.strip().lstrip(";").strip()
+        patterns = [
+            (
+                r"^\s*CREATE\s+OR\s+REPLACE\s+(TABLE|VIEW|INDEX|SCHEMA|ROLE|USER|TYPE|SEQUENCE|FUNCTION|PROCEDURE|TRIGGER)\b",
+                r"CREATE OR REPLACE \1",
+            ),
+            (
+                r"^\s*CREATE\s+(?:UNIQUE\s+)?(TABLE|VIEW|INDEX|SCHEMA|ROLE|USER|TYPE|SEQUENCE|FUNCTION|PROCEDURE|TRIGGER|DATABASE)\b",
+                r"CREATE \1",
+            ),
+            (
+                r"^\s*ALTER\s+(TABLE|DATABASE|SCHEMA|ROLE|USER|SEQUENCE|SYSTEM)\b",
+                r"ALTER \1",
+            ),
+            (
+                r"^\s*DROP\s+(TABLE|VIEW|INDEX|SCHEMA|ROLE|USER|SEQUENCE|DATABASE|TRIGGER|FUNCTION|PROCEDURE)\b",
+                r"DROP \1",
+            ),
+            (r"^\s*GRANT\b", "GRANT"),
+            (r"^\s*REVOKE\b", "REVOKE"),
+            (r"^\s*COMMENT\b", "COMMENT"),
+            (r"^\s*INSERT\b", "INSERT"),
+        ]
+        import re
+
+        for pat, repl in patterns:
+            m = re.match(pat, clean, re.IGNORECASE)
+            if m:
+                if "\\" in repl:
+                    return re.sub(pat, repl, m.group(0), flags=re.IGNORECASE).strip().upper()
+                return repl.upper()
+        words = clean.split()
+        if len(words) >= 2 and words[0].upper() in ("CREATE", "ALTER", "DROP"):
+            return f"{words[0].upper()} {words[1].upper()}"
+        elif words:
+            return words[0].upper()
+        return "DDL"
+
+
     async def execute_sql(self, sql_query: str, allow_star: bool = False) -> dict:
-        sql_query = sql_query.rstrip(";").strip()
+        sql_query = self._clean_query(sql_query)
         self._validate_sql(sql_query, allow_star=allow_star)
         return await self._execute_query(sql_query)
 
@@ -63,7 +122,7 @@ class SQLExecutor:
 
     async def simulate_update(self, sql_query: str, allowed_tables: list[str] = None) -> int:
         """Безопасное выполнение UPDATE с помощью транзакции и отката"""
-        sql_query = sql_query.rstrip(";").strip()
+        sql_query = self._clean_query(sql_query)
         self._validate_sql(sql_query, allow_update=True, allowed_tables=allowed_tables)
         return await self._simulate_update(sql_query)
 
@@ -169,7 +228,7 @@ class SQLExecutor:
         expect_error: bool = False,
     ) -> dict:
         """Безопасное выполнение DDL (функции/процедуры/триггеры) и тестового запроса в изолированной транзакции с ROLLBACK"""
-        ddl_query = ddl_query.rstrip(";").strip()
+        ddl_query = self._clean_query(ddl_query)
         self._validate_sql(ddl_query, allow_ddl=True)
         return await self._simulate_ddl_execution(
             ddl_query,
@@ -237,7 +296,16 @@ class SQLExecutor:
                 elif last_result:
                     res = {"columns": [], "data": [], "row_count": last_result.rowcount}
                 else:
-                    res = {"columns": [], "data": [], "row_count": 0}
+                    op_type = self._extract_operation_type(ddl_query)
+                    res = {
+                        "columns": ["Статус операции"],
+                        "data": [
+                            [
+                                f"Команда успешно выполнена: {op_type} (симуляция завершена успешно)"
+                            ]
+                        ],
+                        "row_count": 1,
+                    }
 
                 await conn.rollback()
                 return res
@@ -289,8 +357,8 @@ class SQLExecutor:
 
         # Check for forbidden system/admin operations
         forbidden_patterns = [
-            r"\bdrop\s+(database|schema|role|user)\b",
-            r"\balter\s+(system|database|role|user)\b",
+            r"\bdrop\s+database\b",
+            r"\balter\s+system\b",
             r"\bpg_shadow\b",
             r"\bpg_authid\b",
             r"\bpg_user\b",
@@ -315,7 +383,7 @@ class SQLExecutor:
 
         if allow_ddl:
             ddl_match = re.match(
-                r"^\s*CREATE\s+(?:OR\s+REPLACE\s+)?(?:FUNCTION|PROCEDURE|TRIGGER)\b",
+                r"^\s*(?:CREATE|ALTER|DROP|GRANT|REVOKE|COMMENT)\b",
                 clean_query,
                 re.IGNORECASE,
             )
@@ -339,7 +407,8 @@ class SQLExecutor:
 
         if not allow_star:
             for node in parsed.find_all(exp.Star):
-                raise HTTPException(status_code=400, detail="Использование SELECT * запрещено при финальной отправке, перечислите столбцы явно")
+                if not isinstance(node.parent, exp.Count):
+                    raise HTTPException(status_code=400, detail="Использование SELECT * запрещено при финальной отправке, перечислите столбцы явно")
 
         for table in parsed.find_all(exp.Table):
             table_name = table.name.lower()

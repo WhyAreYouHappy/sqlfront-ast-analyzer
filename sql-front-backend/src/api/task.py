@@ -1,4 +1,5 @@
 import logging
+import re
 from collections.abc import Mapping
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -21,7 +22,17 @@ from src.schemas.task import (
     TasksCount,
     TaskSubmissionResult,
     TaskWithStatusResponse,
+    DatabaseSchemaResponse,
 )
+
+from src.utils.schema_inspector import schema_inspector
+from src.utils.analytics import log_user_event
+from src.utils.auth import get_current_user
+from src.utils.sql_executor import SQLExecutor
+from src.utils import catalog_model
+import logging
+import re
+
 from src.sql_analysis import (
     PREVIEW_SELECT_POLICY,
     SUBMIT_SELECT_POLICY,
@@ -82,6 +93,21 @@ def _reveal_expected(task):
     return payload
 
 
+
+
+@router.get(
+    "/schema",
+    summary="Динамическая схема базы данных (ER-диаграмма)",
+    description="Возвращает актуальный граф таблиц, колонок и связей из системного каталога PostgreSQL для отображения в ER-диаграмме",
+    response_model=DatabaseSchemaResponse,
+)
+async def get_database_schema(refresh: bool = False):
+    try:
+        return await schema_inspector.get_schema(refresh=refresh)
+    except Exception as e:
+        logger.error(f"Error fetching database schema: {e}")
+        raise HTTPException(status_code=500, detail="Не удалось получить схему базы данных")
+
 def _ddl_verification_cases(
         expected_result: Mapping[str, object],
 ) -> tuple[Mapping[str, object], ...]:
@@ -117,7 +143,7 @@ async def get_task_info(
     db: AsyncSession = Depends(get_db),
 ):
     repo = TaskRepository(db)
-    task, is_solved = await repo.get_task_info_with_status(
+    task, is_solved, user_solution = await repo.get_task_info_with_status(
         mission_id, task_id, current_user.user_id
     )
     if not task:
@@ -168,6 +194,7 @@ async def get_task_info(
         "previous": {"mission_id": prev_mission_id, "task_id": prev_task_id},
         "next": {"mission_id": next_mission_id, "task_id": next_task_id},
         "difficulty": difficulty,
+        "user_solution": user_solution,
     }
 
 
@@ -296,7 +323,12 @@ async def run_sql_query(
             task_id=task.task_global_id,
             payload={"mission_id": mission_id, "task_id": task_id},
         )
+        sql_query = (request.sql_query or "").strip()
+        if not sql_query:
+            raise HTTPException(status_code=400, detail="Пустой запрос")
+
         exp_res = task.expected_result or {}
+
         preview_policy, quality_policy = configure_analysis(
             PREVIEW_SELECT_POLICY,
             question=getattr(task, "description", ""),
@@ -304,10 +336,29 @@ async def run_sql_query(
             tags=getattr(task, "tags", None),
         )
         if exp_res.get("mode") == "model":
-            ok, message = catalog_model.verify(
-                request.sql_query, exp_res
-            )
-            return {"columns": ["Результат:"], "data": [[message]], "row_count": 1}
+            if re.search(r"\b(?:DROP\s+DATABASE|ALTER\s+SYSTEM)\b", sql_query, re.IGNORECASE):
+                raise HTTPException(
+                    status_code=400,
+                    detail="DROP DATABASE / ALTER SYSTEM запрещены",
+                )
+            model = catalog_model.Model(exp_res.get("database", "quest_sandbox"))
+            try:
+                for statement in exp_res.get("setup", []):
+                    model.execute(statement)
+                model.execute(sql_query)
+            except catalog_model.ModelError as exc:
+                raise HTTPException(status_code=400, detail=f"Ошибка выполнения: {exc}") from exc
+            operation = SQLExecutor._extract_operation_type(sql_query)
+            return {
+                "columns": ["Статус операции"],
+                "data": [[f"Команда успешно выполнена: {operation} (симуляция завершена успешно)"]],
+                "row_count": 1,
+                "analysis": build_findings_payload(
+                    (),
+                    preview_policy.task_context,
+                    penalty_policy=quality_policy,
+                ),
+            }
         elif exp_res.get("mode") in ("ddl", "plpgsql"):
             ddl_analysis = ddl_analyzer.analyze(request.sql_query)
             if not ddl_analysis.can_execute:
@@ -394,6 +445,7 @@ async def submit_sql_query(
     try:
         if expected_result.get("mode") == "model":
             is_correct, hint = catalog_model.verify(request.sql_query, expected_result)
+
             quality_assessment = (
                 assess_query_quality(
                     (), settings.TASK_POINTS[mission_id], policy=quality_policy
@@ -513,12 +565,14 @@ async def submit_sql_query(
         is_correct = False
         hint = f"Ошибка выполнения запроса: {str(e)}"
     try:
+
         result = await repo.check_and_reward_task(
             user_id=current_user.user_id,
             mission_id=mission_id,
             task_id=task_id,
             is_correct=is_correct,
             quality_penalty=quality_penalty if is_correct else 0,
+            user_query=request.sql_query if is_correct else None,
         )
         await log_user_event(
             session=db,

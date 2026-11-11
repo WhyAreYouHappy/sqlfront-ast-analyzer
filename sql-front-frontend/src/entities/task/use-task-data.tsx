@@ -29,8 +29,9 @@ export const useTaskData = () => {
   return {
     task,
     totalScore: user.data?.totalScore, 
-    missionId: String(missionId),
-    taskId: String(taskId),
+    missionId: missionId ? String(missionId) : undefined,
+    taskId: taskId ? String(taskId) : undefined,
     error,
+    userSolution: task?.userSolution,
   };
 };

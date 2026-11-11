@@ -48,7 +48,7 @@ def test_correct_solution_receives_reduced_reward(monkeypatch) -> None:
     async def fake_check_already_solved(self, user_id: int, task_id: int):
         return False
 
-    async def fake_add_solved_task(self, user_id: int, task_id: int):
+    async def fake_add_solved_task(self, user_id: int, task_id: int, user_query=None):
         return None
 
     monkeypatch.setattr(

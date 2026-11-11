@@ -8,7 +8,14 @@ from sqlalchemy.orm import sessionmaker
 
 from database import Base
 from src.models.user_event import UserEvent
-from src.admin.dashboard import AnalyticsDashboardView, build_analytics_figure
+from src.models.user import User
+from src.models.task import Task
+from src.admin import TEMPLATES_DIR
+from src.admin.dashboard import (
+    AnalyticsDashboardView,
+    build_analytics_figure,
+    build_analytics_dashboard_data,
+)
 
 
 @pytest.mark.anyio
@@ -52,10 +59,41 @@ async def test_build_analytics_figure_with_data():
 
 
 @pytest.mark.anyio
+async def test_build_analytics_dashboard_data_ai_detection():
+    # User 1 starts task 10, goes inactive, submits 20 seconds later on attempt 1
+    t0 = datetime.datetime(2026, 10, 14, 12, 0, 0)
+    t1 = t0 + datetime.timedelta(seconds=5)
+    t2 = t0 + datetime.timedelta(seconds=20)
+
+    events = [
+        UserEvent(id=1, timestamp=t0, user_id=101, task_id=10, event_type="task_started", payload={"mission_id": 1, "task_id": 1}),
+        UserEvent(id=2, timestamp=t1, user_id=101, task_id=10, event_type="user_inactive", payload={}),
+        UserEvent(id=3, timestamp=t2, user_id=101, task_id=10, event_type="task_submitted", payload={"is_correct": True}),
+    ]
+
+    user = User(user_id=101, login="student_fast", fullname="Test Student", group="IKBO-01-24", total_score=500)
+    task = Task(task_global_id=10, mission_id=1, task_id=1, title="Select Query")
+
+    data = build_analytics_dashboard_data(events, users=[user], tasks=[task])
+
+    assert data["has_data"] is True
+    assert data["kpis"]["total_students"] == 1
+    assert data["kpis"]["ai_suspicions_count"] == 1
+    assert len(data["ai_suspicious_solutions"]) == 1
+    assert data["ai_suspicious_solutions"][0]["login"] == "student_fast"
+    assert data["ai_suspicious_solutions"][0]["duration_sec"] == 20.0
+    assert "ai_integrity" in data["charts"]
+    assert "time_velocity" in data["charts"]
+    assert "difficulty" in data["charts"]
+    assert "groups" in data["charts"]
+
+
+@pytest.mark.anyio
 async def test_analytics_dashboard_http_endpoint():
     # Setup in-memory SQLite database
     test_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
     async with test_engine.begin() as conn:
+        await conn.run_sync(User.__table__.create)
         await conn.run_sync(UserEvent.__table__.create)
 
     test_session_maker = sessionmaker(
@@ -68,7 +106,7 @@ async def test_analytics_dashboard_http_endpoint():
         test_engine,
         session_maker=test_session_maker,
         base_url="/admin",
-        templates_dir="templates",
+        templates_dir=TEMPLATES_DIR,
     )
     admin.add_view(AnalyticsDashboardView)
 
@@ -96,3 +134,6 @@ async def test_analytics_dashboard_http_endpoint():
         response_with_data = await client.get("/admin/analytics")
         assert response_with_data.status_code == 200
         assert "plotly" in response_with_data.text.lower()
+        assert "Детекция ИИ и аномалий" in response_with_data.text
+        assert "Скорость и время миссий" in response_with_data.text
+        assert "Учебные группы" in response_with_data.text

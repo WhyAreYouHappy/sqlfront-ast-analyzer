@@ -25,6 +25,7 @@ class TaskInfo(TaskBase):
     task_id: int
     title: str
     is_solved: bool
+    user_solution: Optional[str] = None
 
 class MissionTasks(BaseModel):
     mission_id: int
@@ -78,6 +79,7 @@ class TaskShortInfo(BaseModel):
     task_global_id: int
     title: str
     is_solved: bool
+    user_solution: Optional[str] = None
 
 
 class MissionsResponse(BaseModel):
@@ -100,6 +102,7 @@ class TaskWithStatusResponse(BaseModel):
     title: str
     description: str
     is_solved: bool
+    user_solution: Optional[str] = None
     has_clue1: bool
     has_clue2: bool
     previous: dict
@@ -127,3 +130,40 @@ class TaskSubmissionResult(BaseModel):
     columns: Optional[list] = None
     data: Optional[list] = None
     analysis: Optional[SQLAnalysisResponse] = None
+
+
+class DatabaseSchemaNodeColumn(BaseModel):
+    title: str
+    type: str
+    description: Optional[str] = None
+
+
+class DatabaseSchemaNodeData(BaseModel):
+    label: str
+    description: str
+    columns: List[DatabaseSchemaNodeColumn]
+
+
+class DatabaseSchemaNodePosition(BaseModel):
+    x: float
+    y: float
+
+
+class DatabaseSchemaNode(BaseModel):
+    id: str
+    position: DatabaseSchemaNodePosition
+    type: str = "databaseSchema"
+    data: DatabaseSchemaNodeData
+
+
+class DatabaseSchemaEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+    sourceHandle: str
+    targetHandle: str
+
+
+class DatabaseSchemaResponse(BaseModel):
+    nodes: List[DatabaseSchemaNode]
+    edges: List[DatabaseSchemaEdge]

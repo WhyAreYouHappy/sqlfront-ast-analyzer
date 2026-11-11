@@ -12,6 +12,21 @@ on:
         required: false
         type: boolean
         default: false
+      set_admin_username:
+        description: 'Set ADMIN_USERNAME in .env (leave blank to keep current)'
+        required: false
+        type: string
+        default: ''
+      set_admin_password:
+        description: 'Set ADMIN_PASSWORD in .env (leave blank to keep current)'
+        required: false
+        type: string
+        default: ''
+      reset_admin_creds:
+        description: 'Reset ADMIN_USERNAME=admin and ADMIN_PASSWORD=admin in .env'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   deploy:
@@ -34,9 +49,65 @@ jobs:
             cd /home/admin/sqlfront/sql-backend
           fi
           
-          echo "Rebuilding and restarting containers..."
-          docker compose down || docker-compose down
-          docker compose up -d --build || docker-compose up -d --build
+          # Manage .env admin credentials via workflow inputs or defaults
+          if [ "${{ github.event.inputs.reset_admin_creds }}" = "true" ]; then
+            echo "Resetting admin credentials to standard admin/admin in .env..."
+            grep -q "^ADMIN_USERNAME=" .env && sed -i "s/^ADMIN_USERNAME=.*/ADMIN_USERNAME=admin/" .env || echo "ADMIN_USERNAME=admin" >> .env
+            grep -q "^ADMIN_PASSWORD=" .env && sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=admin/" .env || echo "ADMIN_PASSWORD=admin" >> .env
+          fi
+
+          if [ -n "${{ github.event.inputs.set_admin_username }}" ]; then
+            echo "Updating ADMIN_USERNAME in .env..."
+            grep -q "^ADMIN_USERNAME=" .env && sed -i "s/^ADMIN_USERNAME=.*/ADMIN_USERNAME=${{ github.event.inputs.set_admin_username }}/" .env || echo "ADMIN_USERNAME=${{ github.event.inputs.set_admin_username }}" >> .env
+          fi
+
+          if [ -n "${{ github.event.inputs.set_admin_password }}" ]; then
+            echo "Updating ADMIN_PASSWORD in .env..."
+            grep -q "^ADMIN_PASSWORD=" .env && sed -i "s/^ADMIN_PASSWORD=.*/ADMIN_PASSWORD=${{ github.event.inputs.set_admin_password }}/" .env || echo "ADMIN_PASSWORD=${{ github.event.inputs.set_admin_password }}" >> .env
+          fi
+
+          # Ensure standard admin credentials exist in .env if completely absent
+          grep -q "^ADMIN_USERNAME=" .env || echo "ADMIN_USERNAME=admin" >> .env
+          grep -q "^ADMIN_PASSWORD=" .env || echo "ADMIN_PASSWORD=admin" >> .env
+
+          echo "Admin configuration verified in .env: ADMIN_USERNAME=$(grep '^ADMIN_USERNAME=' .env | cut -d= -f2-)"
+          
+          # 1. Immediately ensure all containers are running (including nginx) to prevent 502
+          echo "Ensuring existing containers are up..."
+          docker compose up -d || true
+
+          # 2. Try setting reliable Docker registry mirrors if sudo is available
+          if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+            if ! grep -q "timeweb.cloud" /etc/docker/daemon.json 2>/dev/null; then
+              echo "Configuring Docker registry mirrors in /etc/docker/daemon.json..."
+              sudo mkdir -p /etc/docker
+              echo '{"registry-mirrors": ["https://mirror.gcr.io", "https://dockerhub.timeweb.cloud"]}' | sudo tee /etc/docker/daemon.json >/dev/null
+              sudo systemctl reload docker 2>/dev/null || sudo systemctl restart docker 2>/dev/null || true
+              sleep 2
+            fi
+          fi
+
+          # 3. Build containers without dropping old ones first
+          echo "Building containers (with retry and fallback)..."
+          BUILD_SUCCESS=false
+          for i in 1 2 3; do
+            echo "Build attempt $i of 3..."
+            if docker compose build; then
+              BUILD_SUCCESS=true
+              break
+            fi
+            echo "Build attempt $i encountered an issue, retrying in 5 seconds..."
+            sleep 5
+          done
+
+          if [ "$BUILD_SUCCESS" != "true" ]; then
+            echo "Standard BuildKit build failed (likely Docker Hub timeout). Attempting legacy builder DOCKER_BUILDKIT=0..."
+            DOCKER_BUILDKIT=0 docker compose build || echo "Warning: build with DOCKER_BUILDKIT=0 failed, proceeding with current images"
+          fi
+
+          # 4. Restart all containers with newly built images
+          echo "Restarting containers..."
+          docker compose up -d --remove-orphans
           
           echo "Waiting 10 seconds for services to initialize..."
           sleep 10

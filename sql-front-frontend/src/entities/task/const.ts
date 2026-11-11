@@ -135,6 +135,19 @@ export const databaseNodes: Node[] = [
     },
   },
   {
+    id: "battle_military_unit",
+    position: { x: -80, y: 350 },
+    type: "databaseSchema",
+    data: {
+      label: "battle_military_unit",
+      description: "участие подразделений в битвах",
+      columns: [
+        { title: "battle_id", type: "bigint", description: "ссылка на битву" },
+        { title: "unit_id", type: "bigint", description: "ссылка на советское подразделение" },
+      ],
+    },
+  },
+  {
     id: "battle_enemy_unit",
     position: { x: -125, y: 700 },
     type: "databaseSchema",
@@ -216,6 +229,20 @@ export const databaseEdges: Edge[] = [
     target: "equipment_assignment",
     sourceHandle: "source:id",
     targetHandle: "target:soldier_id",
+  },
+  {
+    id: "battle_military_unit-battle",
+    source: "battle_military_unit",
+    target: "battle",
+    sourceHandle: "source:battle_id",
+    targetHandle: "target:id",
+  },
+  {
+    id: "battle_military_unit-military_unit",
+    source: "battle_military_unit",
+    target: "military_unit",
+    sourceHandle: "source:unit_id",
+    targetHandle: "target:id",
   },
   {
     id: "battle-battle_enemy_unit",

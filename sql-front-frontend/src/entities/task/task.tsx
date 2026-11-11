@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 
 import { useAppDispatch, useAppSelector } from "@/shared/hooks/redux";
@@ -7,7 +7,7 @@ import { MenuDrawer } from "@/entities/menu-drawer/menu-drawer";
 import { Title } from "@/shared/ui/title/title";
 import { Text } from "@/shared/ui/text/text";
 import { TaskBlock } from "@/shared/ui/task-block/task-block";
-import { getTaskClueData, getTaskExpectedResultData, runTaskQuery, submitTaskSolution } from "@/store/reducers/actions/task-actions";
+import { getDatabaseSchema, getTaskClueData, getTaskExpectedResultData, runTaskQuery, submitTaskSolution } from "@/store/reducers/actions/task-actions";
 
 import { useTaskData } from "./use-task-data";
 import styles from "./task.module.scss";
@@ -16,6 +16,9 @@ import strings from "@/shared/consts/strings";
 import { SubmissionResultType } from "@/shared/types/task-type";
 import { AchievementToast } from "@/shared/ui/achievement-toast/achievement-toast";
 import { tasksSlice } from "@/store/reducers/tasks-slice";
+
+import api from "@/shared/config/axios";
+
 import { prepareSqlPreview } from "@/shared/utils/prepare-sql-preview";
 
 const SubmitionToastText = (submission: SubmissionResultType | null, isSolved: boolean) => {
@@ -58,41 +61,133 @@ const SubmitionToastText = (submission: SubmissionResultType | null, isSolved: b
 
 export const Task = () => {
   const dispatch = useAppDispatch();
-  const { queryRun } = useAppSelector((state) => state.task);
+  const { queryRun, schema } = useAppSelector((state) => state.task);
   const { resetQueryRun } = tasksSlice.actions;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
   const data = useTaskData();
+  const initializedTaskRef = useRef<string | null>(null);
 
   useEffect(() => {
     dispatch(resetQueryRun());
   }, [dispatch, resetQueryRun, data.missionId, data.taskId]);
 
   useEffect(() => {
-    if (data.missionId !== undefined && data.taskId !== undefined) {
-      const saved = localStorage.getItem(`sql_draft_mission_${data.missionId}_task_${data.taskId}`);
-      if (saved) {
-        setValue(saved);
+    if (!schema.nodes) {
+      dispatch(getDatabaseSchema());
+    }
+  }, [dispatch, schema.nodes]);
+
+  useEffect(() => {
+    if (!data.missionId || !data.taskId || data.missionId === "undefined" || data.taskId === "undefined") {
+      return;
+    }
+
+    const taskKey = `${data.missionId}.${data.taskId}`;
+    const storageKey = `sql_draft_mission_${data.missionId}_task_${data.taskId}`;
+    const savedDraft = localStorage.getItem(storageKey);
+
+    // If task hasn't been initialized yet or user switched tasks:
+    if (initializedTaskRef.current !== taskKey) {
+      if (savedDraft !== null && savedDraft !== "") {
+        setValue(savedDraft);
+      } else if (data.userSolution) {
+        setValue(data.userSolution);
+        localStorage.setItem(storageKey, data.userSolution);
       } else {
         setValue("");
       }
+      initializedTaskRef.current = taskKey;
+      return;
     }
-  }, [data.missionId, data.taskId]);
+
+    // If already initialized for this task, but userSolution arrived from API later and no local draft existed:
+    if (!savedDraft && data.userSolution && value === "") {
+      setValue(data.userSolution);
+      localStorage.setItem(storageKey, data.userSolution);
+    }
+  }, [data.missionId, data.taskId, data.userSolution, value]);
   
   const toggleMenu = useCallback(() => {
     setIsMenuOpen((prev) => !prev);
   }, [setIsMenuOpen]);
+  // Telemetry: user inactivity & tab switching
+  useEffect(() => {
+    if (data.missionId === undefined || data.taskId === undefined) {
+      return;
+    }
+
+    let hasSentInactive = false;
+    const sendInactiveTelemetry = () => {
+      if (hasSentInactive) {
+        return;
+      }
+      hasSentInactive = true;
+      api.post(`/util/${data.missionId}/tasks/${data.taskId}/inactive`).catch(() => {});
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        sendInactiveTelemetry();
+      } else {
+        hasSentInactive = false;
+      }
+    };
+
+    const handleBlur = () => {
+      sendInactiveTelemetry();
+    };
+
+    const handleFocus = () => {
+      hasSentInactive = false;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleBlur);
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleBlur);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [data.missionId, data.taskId]);
+
+  // Telemetry: code paste detection (> 25 characters)
+  useEffect(() => {
+    if (data.missionId === undefined || data.taskId === undefined) {
+      return;
+    }
+
+    const handlePaste = (e: ClipboardEvent) => {
+      const pasted = e.clipboardData?.getData("text") || "";
+      if (pasted.length > 25) {
+        api.post(`/util/${data.missionId}/tasks/${data.taskId}/paste`, {
+          length: pasted.length,
+          preview: pasted.slice(0, 40),
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+  }, [data.missionId, data.taskId]);
+
 
   const onChange = useCallback((val: string) => {
     setValue(val);
-    if (data.missionId !== undefined && data.taskId !== undefined) {
+    if (data.missionId && data.taskId && data.missionId !== "undefined" && data.taskId !== "undefined") {
       localStorage.setItem(`sql_draft_mission_${data.missionId}_task_${data.taskId}`, val);
     }
   }, [setValue, data.missionId, data.taskId]);
 
   const queryRunHandle = useCallback(() => {
+    if (!data.missionId || !data.taskId) {
+      return;
+    }
     setError("");
+
     const prepared = prepareSqlPreview(value);
     if (prepared.error) {
       setError(prepared.error);
@@ -102,11 +197,15 @@ export const Task = () => {
     dispatch(runTaskQuery({
       taskId: data.taskId,
       missionId: data.missionId,
+
       payload: { sql_query: prepared.sql },
     }));
   }, [dispatch, data.missionId, data.taskId, value]);
 
   const submitSolution = useCallback(async () => {
+    if (!data.missionId || !data.taskId) {
+      return;
+    }
     try {
       const result = await dispatch(submitTaskSolution({
         taskId: data.taskId,
@@ -134,6 +233,9 @@ export const Task = () => {
   }, [dispatch, data.taskId, data.missionId, value, data.task?.isSolved]);
 
   const getClue = useCallback(() => {
+    if (!data.missionId || !data.taskId) {
+      return;
+    }
     dispatch(getTaskClueData({
       taskId: data.taskId,
       missionId: data.missionId, 
@@ -148,6 +250,9 @@ export const Task = () => {
   }, [dispatch, data.taskId, data.missionId]);
 
   const getExpectedResult = useCallback(() => {
+    if (!data.missionId || !data.taskId) {
+      return;
+    }
     dispatch(getTaskExpectedResultData({
       taskId: data.taskId,
       missionId: data.missionId, 
@@ -206,14 +311,14 @@ export const Task = () => {
           isUserHasExpectedResult: data.task?.isUserHasExpectedResult,
           getExpectedResult: getExpectedResult,
         }}
-        databaseNodes={databaseNodes}
-        databaseEdges={databaseEdges}
+        databaseNodes={schema.nodes || databaseNodes}
+        databaseEdges={schema.edges || databaseEdges}
         onChange={onChange}
         value={value}
         queryRunHandle={queryRunHandle}
         submitSolution={submitSolution}
         resultData={error ? error : queryRun.result ? queryRun.result : queryRun.queryError}
-        analysis={data.task?.submission?.analysis || queryRun.analysis}
+        analysis={queryRun.analysis}
         getClue={getClue}
         nextTask={data.task?.next}
       />

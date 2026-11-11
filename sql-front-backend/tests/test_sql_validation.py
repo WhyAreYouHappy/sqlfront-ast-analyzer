@@ -337,6 +337,7 @@ def test_task_submit_uses_validation_service(monkeypatch) -> None:
                 task_id: int,
                 is_correct: bool,
                 quality_penalty: int = 0,
+                user_query: str | None = None,
         ) -> dict:
             self.submitted_is_correct = is_correct
             return {

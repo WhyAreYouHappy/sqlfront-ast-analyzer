@@ -1,0 +1,482 @@
+@use "@/styles/variables" as *;
+
+.patchnotes {
+  width: 75vw;
+  max-width: 1200px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 3vw 1vw 6vw;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-sizing: border-box;
+
+  @media (max-width: 1024px) {
+    width: 88vw;
+    padding-top: 5vw;
+  }
+
+  @media (max-width: 768px) {
+    width: 94vw;
+    padding-top: 18vw;
+    padding-bottom: 12vw;
+  }
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2vw;
+  padding-bottom: 1vw;
+  border-bottom: 0.1vw solid rgba(57, 57, 57, 0.15);
+
+  @media (max-width: 768px) {
+    margin-bottom: 5vw;
+    padding-bottom: 3vw;
+  }
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5vw;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1.1vw;
+  font-weight: 500;
+  color: $red-color;
+  text-decoration: none;
+  transition: transform 0.2s ease, color 0.2s ease;
+
+  &:hover {
+    color: $black-color;
+    transform: translateX(-3px);
+  }
+
+  @media (max-width: 768px) {
+    font-size: 16px;
+  }
+}
+
+.headerSection {
+  margin-bottom: 3vw;
+
+  @media (max-width: 768px) {
+    margin-bottom: 6vw;
+  }
+}
+
+.pageSubtitle {
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1.25vw;
+  line-height: 150%;
+  color: #555555;
+  margin-top: 1vw;
+  max-width: 50vw;
+
+  @media (max-width: 1024px) {
+    font-size: 1.6vw;
+    max-width: 70vw;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 15px;
+    max-width: 100%;
+    margin-top: 3vw;
+  }
+}
+
+.quickNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8vw;
+  margin-top: 1.5vw;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+    margin-top: 4vw;
+  }
+}
+
+.quickNavButton {
+  background: #f4f4f4;
+  border: 1px solid #d4d4d4;
+  border-radius: 4px;
+  padding: 0.4vw 0.9vw;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 0.9vw;
+  font-weight: 500;
+  color: $black-color;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4vw;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: $red-light-color;
+    border-color: $red-color;
+    color: $red-color;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+}
+
+.releasesList {
+  display: flex;
+  flex-direction: column;
+  gap: 3.5vw;
+
+  @media (max-width: 768px) {
+    gap: 8vw;
+  }
+}
+
+.releaseCard {
+  background: #ffffff;
+  border: 2px solid #e2e2e2;
+  border-left: 6px solid $red-color;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  padding: 2.5vw;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 8px 30px rgba(165, 54, 54, 0.08);
+  }
+
+  @media (max-width: 768px) {
+    padding: 5vw;
+    border-left-width: 4px;
+  }
+}
+
+.releaseCardCurrent {
+  border-color: #c94a4a;
+  border-left: 8px solid $red-color;
+  background: linear-gradient(180deg, #fffcfc 0%, #ffffff 100%);
+}
+
+.cardHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1vw;
+  margin-bottom: 0.8vw;
+}
+
+.versionTitleGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8vw;
+
+  @media (max-width: 768px) {
+    gap: 8px;
+  }
+}
+
+.versionNumber {
+  font-family: 'Buran USSR', sans-serif;
+  font-size: 2.6vw;
+  font-weight: 600;
+  color: $black-color;
+
+  @media (max-width: 1024px) {
+    font-size: 3.2vw;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 26px;
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25vw 0.7vw;
+  border-radius: 3px;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 0.8vw;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+
+  @media (max-width: 768px) {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}
+
+.badgeCurrent {
+  background-color: $red-color;
+  color: #ffffff;
+}
+
+.badgeStable {
+  background-color: #2b6cb0;
+  color: #ffffff;
+}
+
+.badgeBase {
+  background-color: #4a5568;
+  color: #ffffff;
+}
+
+.releaseDate {
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1vw;
+  color: #718096;
+  font-weight: 500;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+  }
+}
+
+.releaseTheme {
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1.4vw;
+  font-weight: 600;
+  color: $red-color;
+  margin-bottom: 1.2vw;
+
+  @media (max-width: 1024px) {
+    font-size: 1.7vw;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+    margin-bottom: 3vw;
+  }
+}
+
+.summaryBox {
+  background-color: #fcf8f8;
+  border-left: 3px solid $red-color;
+  padding: 1vw 1.2vw;
+  margin-bottom: 2vw;
+  border-radius: 2px;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1.05vw;
+  line-height: 155%;
+  color: #333333;
+
+  @media (max-width: 1024px) {
+    font-size: 1.25vw;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 12px;
+    margin-bottom: 5vw;
+  }
+}
+
+.sectionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1.8vw;
+
+  @media (max-width: 768px) {
+    gap: 4.5vw;
+  }
+}
+
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vw;
+
+  @media (max-width: 768px) {
+    gap: 2vw;
+  }
+}
+
+.categoryTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4vw;
+  width: fit-content;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 0.95vw;
+  font-weight: 600;
+  color: #2d3748;
+  background-color: #edf2f7;
+  padding: 0.3vw 0.7vw;
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 4px 8px;
+  }
+}
+
+.itemsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vw;
+
+  @media (max-width: 768px) {
+    gap: 2.5vw;
+  }
+}
+
+.itemRow {
+  position: relative;
+  padding-left: 1.5vw;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1vw;
+  line-height: 150%;
+  color: #2d3748;
+
+  &::before {
+    content: "•";
+    position: absolute;
+    left: 0.3vw;
+    top: -0.1vw;
+    color: $red-color;
+    font-size: 1.4vw;
+    font-weight: bold;
+  }
+
+  code {
+    background-color: #f1f1f1;
+    color: #a53636;
+    padding: 0.1vw 0.3vw;
+    border-radius: 3px;
+    font-size: 0.9em;
+    font-family: Consolas, Monaco, 'Courier New', monospace;
+    border: 1px solid #e2e2e2;
+  }
+
+  @media (max-width: 1024px) {
+    font-size: 1.2vw;
+    padding-left: 2vw;
+
+    &::before {
+      font-size: 1.7vw;
+    }
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding-left: 20px;
+
+    &::before {
+      font-size: 18px;
+      left: 4px;
+      top: -2px;
+    }
+  }
+}
+
+.footerCallout {
+  margin-top: 5vw;
+  padding: 2vw;
+  background: #fdfaf6;
+  border: 1px dashed #d1c7bc;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1vw;
+
+  @media (max-width: 768px) {
+    margin-top: 8vw;
+    padding: 6vw 4vw;
+    gap: 3vw;
+  }
+}
+
+.footerTitle {
+  font-family: 'Buran USSR', sans-serif;
+  font-size: 1.6vw;
+  color: $black-color;
+
+  @media (max-width: 768px) {
+    font-size: 20px;
+  }
+}
+
+.footerText {
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 1vw;
+  color: #555555;
+  max-width: 45vw;
+  line-height: 150%;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    max-width: 100%;
+  }
+}
+
+.footerActions {
+  display: flex;
+  gap: 1vw;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.5vw;
+
+  @media (max-width: 768px) {
+    gap: 10px;
+  }
+}
+
+.bugButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4vw;
+  padding: 0.6vw 1.2vw;
+  background: #e53e3e;
+  color: #ffffff;
+  border-radius: 4px;
+  text-decoration: none;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 0.95vw;
+  font-weight: 500;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #c53030;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+}
+
+.mainButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4vw;
+  padding: 0.6vw 1.2vw;
+  background: $black-color;
+  color: #ffffff;
+  border-radius: 4px;
+  text-decoration: none;
+  font-family: 'Moscow Sans', sans-serif;
+  font-size: 0.95vw;
+  font-weight: 500;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #111111;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 8px 16px;
+  }
+}

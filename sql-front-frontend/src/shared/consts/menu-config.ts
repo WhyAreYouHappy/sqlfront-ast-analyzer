@@ -19,6 +19,11 @@ export const menuCoonfig: { unauthorized: MenuItemType[], authorized: MenuItemTy
       text: "Зарегистрироваться",
       href: "auth?type=register",
     },
+    {
+      page: "patchnotes",
+      text: "Обновления",
+      href: "/patchnotes",
+    },
   ],
   authorized: [
     {
@@ -52,6 +57,11 @@ export const menuCoonfig: { unauthorized: MenuItemType[], authorized: MenuItemTy
       page: "achievements",
       text: "Достижения",
       href: "/achievements",
+    },
+    {
+      page: "patchnotes",
+      text: "Обновления",
+      href: "/patchnotes",
     },
     {
       page: "logout",

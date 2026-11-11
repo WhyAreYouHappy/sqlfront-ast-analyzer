@@ -1,39 +1,716 @@
 {% extends "sqladmin/layout.html" %}
 
+{% block head %}
+<script src="https://cdn.plot.ly/plotly-4.1.1.min.js"></script>
+<style>
+  .student-header-row:hover {
+    background-color: rgba(32, 107, 196, 0.05);
+  }
+  .student-chevron {
+    transition: transform 0.2s ease-in-out;
+  }
+  .student-chevron.expanded {
+    transform: rotate(90deg);
+  }
+  .row-reviewed {
+    opacity: 0.55;
+    background-color: #f8fafc !important;
+  }
+  .row-reviewed strong {
+    text-decoration: line-through;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
+<script src="https://cdn.plot.ly/plotly-4.1.1.min.js"></script>
 <div class="container-xl">
+  <!-- Page Header -->
   <div class="page-header d-print-none mb-3">
     <div class="row align-items-center">
       <div class="col">
         <h2 class="page-title">
-          <i class="fa-solid fa-chart-line me-2"></i>Аналитика и телеметрия
+          <i class="fa-solid fa-chart-line me-2 text-primary"></i>Педагогическая аналитика и мониторинг
         </h2>
+        <div class="text-muted mt-1">Метрики прохождения миссий, статистика времени, детекция ИИ и успеваемость групп</div>
       </div>
     </div>
   </div>
 
-  <div class="row row-cards">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Образовательная активность студентов</h3>
-        </div>
+  {% if has_data %}
+  <!-- KPI Metrics Row -->
+  <div class="row row-cards mb-3">
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm">
         <div class="card-body">
-          {% if has_data and graph_html %}
-            <div class="plotly-chart-wrapper">
-              {{ graph_html | safe }}
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="bg-primary text-white avatar"><i class="fa-solid fa-users"></i></span>
             </div>
-          {% else %}
-            <div class="alert alert-info d-flex align-items-center" role="alert">
-              <div>
-                <p class="mb-0"><strong>Нет данных для отображения</strong></p>
-                <small class="text-muted">События активности пользователей в TimescaleDB пока не зафиксированы.</small>
-              </div>
+            <div class="col">
+              <div class="font-weight-medium fs-3">{{ kpis.total_students }}</div>
+              <div class="text-muted">Активных студентов</div>
             </div>
-          {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="bg-success text-white avatar"><i class="fa-solid fa-check-double"></i></span>
+            </div>
+            <div class="col">
+              <div class="font-weight-medium fs-3">{{ kpis.success_rate }}%</div>
+              <div class="text-muted">Успешных сабмитов ({{ kpis.total_submissions }})</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="bg-info text-white avatar"><i class="fa-solid fa-stopwatch"></i></span>
+            </div>
+            <div class="col">
+              <div class="font-weight-medium fs-3">{{ kpis.avg_solve_time_min }} мин</div>
+              <div class="text-muted">Среднее время решения</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+      <div class="card card-sm">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-auto">
+              <span class="bg-danger text-white avatar"><i class="fa-solid fa-robot"></i></span>
+            </div>
+            <div class="col">
+              <div class="font-weight-medium fs-3 text-danger">{{ kpis.ai_suspicions_count }}</div>
+              <div class="text-muted">Аномально быстрых решений</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Tabler Tabs Navigation -->
+  <div class="card">
+    <div class="card-header">
+      <ul class="nav nav-tabs card-header-tabs" data-bs-toggle="tabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <a href="#tab-ai" class="nav-link active" data-bs-toggle="tab" aria-selected="true" role="tab">
+            <i class="fa-solid fa-robot me-2 text-danger"></i>Детекция ИИ и аномалий
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="#tab-velocity" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab">
+            <i class="fa-solid fa-stopwatch me-2 text-success"></i>Скорость и время миссий
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="#tab-difficulty" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab">
+            <i class="fa-solid fa-triangle-exclamation me-2 text-warning"></i>Сложность и подсказки
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="#tab-groups" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab">
+            <i class="fa-solid fa-graduation-cap me-2 text-info"></i>Учебные группы
+          </a>
+        </li>
+        <li class="nav-item" role="presentation">
+          <a href="#tab-overview" class="nav-link" data-bs-toggle="tab" aria-selected="false" role="tab">
+            <i class="fa-solid fa-calendar-day me-2 text-secondary"></i>Динамика активности
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="card-body">
+      <div class="tab-content">
+        <!-- TAB 1: AI & ANOMALIES -->
+        <div class="tab-pane active show" id="tab-ai" role="tabpanel">
+          <div class="alert alert-warning mb-3">
+            <i class="fa-solid fa-circle-info me-2"></i>
+            <strong>Методика детекции ИИ и списывания:</strong> Анализируются решения &lt; 30 сек без единой ошибки и хинтов (копипаст), а также решения &lt; 60 сек с переключением вкладок браузера (уход в сторонний чат-бот).
+          </div>
+          <div class="plotly-chart-wrapper mb-4">
+            {{ charts.ai_integrity | safe }}
+          </div>
+
+          {% if grouped_ai_candidates %}
+          <div class="card mt-3">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h4 class="card-title text-danger mb-0">
+                  <i class="fa-solid fa-triangle-exclamation me-2"></i>Выявленные кандидаты на проверку преподавателем (группировка по студентам)
+                </h4>
+                <div class="text-muted small mt-1">
+                  Студентов: <strong>{{ grouped_ai_candidates|length }}</strong> | Всего подозрительных попыток: <strong>{{ ai_suspicious_solutions|length }}</strong>
+                  <span id="reviewedCounterBadge" class="ms-2 badge bg-success-lt">Проверено: 0</span>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-3">
+                <div class="form-check form-switch mb-0">
+                  <input class="form-check-input" type="checkbox" id="toggleHideReviewed">
+                  <label class="form-check-label small fw-bold" for="toggleHideReviewed">Скрыть проверенные</label>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" id="btnResetReviewed" title="Сбросить отметки">Сбросить отметки</button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;" class="text-center"></th>
+                    <th>Студент</th>
+                    <th>Группа</th>
+                    <th>Подозрительных решений</th>
+                    <th>Мин. время</th>
+                    <th class="text-end" style="width: 170px;">Статус проверки</th>
+                  </tr>
+                </thead>
+                <tbody id="candidatesTableBody">
+                  {% for s in grouped_ai_candidates %}
+                  <tr class="student-header-row" data-user-id="{{ s.user_id }}" style="cursor: pointer;" title="Нажмите, чтобы просмотреть все попытки">
+                    <td class="text-center">
+                      <i class="fa-solid fa-chevron-right text-muted student-chevron" id="chevron-{{ s.user_id }}"></i>
+                    </td>
+                    <td>
+                      <strong>{{ s.login }}</strong>
+                      <span class="text-muted small ms-1">(ID: {{ s.user_id }})</span>
+                    </td>
+                    <td><span class="badge bg-secondary-lt">{{ s.group }}</span></td>
+                    <td>
+                      <span class="badge bg-danger text-white fs-6">{{ s.suspicious_count }} задач</span>
+                    </td>
+                    <td>
+                      <span class="badge bg-danger-lt">{{ s.min_duration }} сек</span>
+                    </td>
+                    <td class="text-end" onclick="event.stopPropagation();">
+                      <label class="form-check form-check-inline m-0">
+                        <input class="form-check-input student-reviewed-checkbox" type="checkbox" data-user-id="{{ s.user_id }}">
+                        <span class="form-check-label badge bg-secondary-lt status-badge" id="badge-{{ s.user_id }}">На проверке</span>
+                      </label>
+                    </td>
+                  </tr>
+                  <!-- Nested details row -->
+                  <tr class="student-details-row d-none" id="details-{{ s.user_id }}">
+                    <td colspan="6" class="p-0 bg-light-lt">
+                      <div class="p-3 border-top border-bottom">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <span class="text-muted fw-bold small">
+                            <i class="fa-solid fa-list-check me-1"></i>Все подозрительные попытки студента {{ s.login }} ({{ s.solutions|length }} шт):
+                          </span>
+                        </div>
+                        <div class="table-responsive bg-white rounded border">
+                          <table class="table table-sm table-striped m-0">
+                            <thead>
+                              <tr>
+                                <th>Задание</th>
+                                <th>Время решения</th>
+                                <th>Ошибок до сдачи</th>
+                                <th>Уходов со страницы</th>
+                                <th>Дата и время</th>
+                                <th class="text-end">Решение</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for sol in s.solutions %}
+                              {% set sol_key = s.user_id ~ '_' ~ sol.task_id ~ '_' ~ sol.timestamp %}
+                              <tr class="solution-item-row" data-sol-key="{{ sol_key }}">
+                                <td><strong>{{ sol.task_label }}</strong></td>
+                                <td><span class="badge bg-danger text-white">{{ sol.duration_sec }} сек</span></td>
+                                <td>{{ sol.attempts }}</td>
+                                <td><span class="badge bg-warning text-dark">{{ sol.inactivities }} раз</span></td>
+                                <td class="text-muted small">{{ sol.timestamp }}</td>
+                                <td class="text-end">
+                                  <label class="form-check form-check-inline m-0">
+                                    <input class="form-check-input solution-reviewed-checkbox" type="checkbox" data-sol-key="{{ sol_key }}" data-user-id="{{ s.user_id }}">
+                                    <span class="form-check-label small text-muted">Проверено</span>
+                                  </label>
+                                </td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- TAB 2: TIME & VELOCITY -->
+        <div class="tab-pane" id="tab-velocity" role="tabpanel">
+          <div class="plotly-chart-wrapper">
+            {{ charts.time_velocity | safe }}
+          </div>
+        </div>
+
+        <!-- TAB 3: DIFFICULTY -->
+        <div class="tab-pane" id="tab-difficulty" role="tabpanel">
+          <div class="plotly-chart-wrapper">
+            {{ charts.difficulty | safe }}
+          </div>
+        </div>
+
+        <!-- TAB 4: GROUPS -->
+        <div class="tab-pane" id="tab-groups" role="tabpanel">
+          <div class="card mb-3 border shadow-sm">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2 py-2">
+              <div class="d-flex align-items-center gap-2">
+                <i class="fa-solid fa-sliders text-primary"></i>
+                <span class="fw-bold">Гибкая фильтрация когорт и учебных групп:</span>
+                <span id="groupsCountBadge" class="badge bg-primary-lt">Отображено: 0 из 0</span>
+              </div>
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <div class="input-group input-group-sm" style="max-width: 220px;">
+                  <span class="input-group-text"><i class="fa-solid fa-search"></i></span>
+                  <input type="text" id="groupSearchInput" class="form-control" placeholder="Поиск группы...">
+                </div>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-primary" id="btnSelectAllGroups" title="Включить все группы">
+                    <i class="fa-solid fa-check-double me-1"></i>Все
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" id="btnDeselectAllGroups" title="Выключить все группы">
+                    <i class="fa-solid fa-xmark me-1"></i>Снять все
+                  </button>
+                  <button type="button" class="btn btn-outline-warning" id="btnHideTestGroups" title="Исключить группы с тестовыми названиями">
+                    <i class="fa-solid fa-shield-halved me-1"></i>Без тестовых
+                  </button>
+                  <button type="button" class="btn btn-outline-info" id="btnInvertGroups" title="Инвертировать выбор">
+                    <i class="fa-solid fa-arrow-right-arrow-left me-1"></i>Инверт
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body p-2 bg-light-lt">
+              <div class="small text-muted mb-2">
+                <i class="fa-solid fa-hand-pointer me-1"></i>Нажимайте на группы, чтобы включать или исключать их из диаграммы. Выбор сохраняется автоматически.
+              </div>
+              <div id="groupPillsContainer" class="d-flex flex-wrap gap-1 align-items-center" style="max-height: 180px; overflow-y: auto;">
+                <!-- Динамически формируемые чипы групп -->
+              </div>
+            </div>
+          </div>
+
+          <div id="groupsEmptyAlert" class="alert alert-warning d-none text-center py-4">
+            <i class="fa-solid fa-circle-exclamation fs-2 text-warning mb-2 d-block"></i>
+            <strong>Все группы отключены в фильтре</strong>
+            <p class="text-muted small mb-3">Включите одну или несколько групп в блоке выше, либо нажмите кнопку &laquo;Все&raquo;.</p>
+            <button type="button" class="btn btn-sm btn-primary" onclick="document.getElementById('btnSelectAllGroups').click();">
+              <i class="fa-solid fa-check-double me-1"></i>Включить все группы
+            </button>
+          </div>
+
+          <div class="plotly-chart-wrapper" id="groups-chart-wrapper">
+            {{ charts.groups | safe }}
+          </div>
+        </div>
+
+        <!-- TAB 5: OVERVIEW -->
+        <div class="tab-pane" id="tab-overview" role="tabpanel">
+          <div class="plotly-chart-wrapper">
+            {{ charts.overview | safe }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="alert alert-info d-flex align-items-center" role="alert">
+    <div>
+      <p class="mb-0"><strong>Нет данных для отображения</strong></p>
+      <small class="text-muted">События активности пользователей в TimescaleDB пока не зафиксированы.</small>
+    </div>
+  </div>
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block tail %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // -------------------------------------------------------------
+  // 1. Chart Resizing on Tab Switch
+  // -------------------------------------------------------------
+  function resizeAllCharts() {
+    window.dispatchEvent(new Event('resize'));
+    if (window.Plotly && window.Plotly.Plots) {
+      document.querySelectorAll('.plotly-graph-div').forEach(function(el) {
+        try {
+          window.Plotly.Plots.resize(el);
+        } catch(e) {}
+      });
+    }
+  }
+
+  const tabLinks = document.querySelectorAll('[data-bs-toggle="tab"], .card-header-tabs a');
+  tabLinks.forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+
+      tabLinks.forEach(function(l) {
+        l.classList.remove('active');
+        l.setAttribute('aria-selected', 'false');
+      });
+      link.classList.add('active');
+      link.setAttribute('aria-selected', 'true');
+
+      const targetId = link.getAttribute('href');
+      if (targetId && targetId.startsWith('#')) {
+        const panes = document.querySelectorAll('.tab-content .tab-pane');
+        panes.forEach(function(pane) {
+          pane.classList.remove('active', 'show');
+        });
+        const activePane = document.querySelector(targetId);
+        if (activePane) {
+          activePane.classList.add('active', 'show');
+        }
+      }
+
+      setTimeout(resizeAllCharts, 60);
+    });
+  });
+
+  if (window.jQuery) {
+    window.jQuery('a[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+      setTimeout(resizeAllCharts, 60);
+    });
+  }
+
+  setTimeout(resizeAllCharts, 100);
+
+  // -------------------------------------------------------------
+  // 2. Candidate Student Accordion Logic
+  // -------------------------------------------------------------
+  document.querySelectorAll('.student-header-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+      const uid = this.getAttribute('data-user-id');
+      const detailsRow = document.getElementById('details-' + uid);
+      const chevron = document.getElementById('chevron-' + uid);
+      if (detailsRow) {
+        const isHidden = detailsRow.classList.contains('d-none');
+        detailsRow.classList.toggle('d-none');
+        if (chevron) {
+          chevron.classList.toggle('expanded', isHidden);
+        }
+      }
+    });
+  });
+
+  // -------------------------------------------------------------
+  // 3. Reviewed Persistence via LocalStorage
+  // -------------------------------------------------------------
+  const STORAGE_STUDENTS = 'sqladmin_reviewed_students_v1';
+  const STORAGE_SOLUTIONS = 'sqladmin_reviewed_solutions_v1';
+  const STORAGE_HIDE = 'sqladmin_hide_reviewed_v1';
+
+  let reviewedStudents = new Set(JSON.parse(localStorage.getItem(STORAGE_STUDENTS) || '[]'));
+  let reviewedSolutions = new Set(JSON.parse(localStorage.getItem(STORAGE_SOLUTIONS) || '[]'));
+  let hideReviewed = localStorage.getItem(STORAGE_HIDE) === 'true';
+
+  const toggleHideCheckbox = document.getElementById('toggleHideReviewed');
+  if (toggleHideCheckbox) {
+    toggleHideCheckbox.checked = hideReviewed;
+    toggleHideCheckbox.addEventListener('change', function() {
+      hideReviewed = this.checked;
+      localStorage.setItem(STORAGE_HIDE, hideReviewed ? 'true' : 'false');
+      applyReviewedState();
+    });
+  }
+
+  function saveStorage() {
+    localStorage.setItem(STORAGE_STUDENTS, JSON.stringify(Array.from(reviewedStudents)));
+    localStorage.setItem(STORAGE_SOLUTIONS, JSON.stringify(Array.from(reviewedSolutions)));
+  }
+
+  function updateStudentRowVisual(uid, isReviewed) {
+    const row = document.querySelector('.student-header-row[data-user-id="' + uid + '"]');
+    const badge = document.getElementById('badge-' + uid);
+    const chk = document.querySelector('.student-reviewed-checkbox[data-user-id="' + uid + '"]');
+    const detailsRow = document.getElementById('details-' + uid);
+
+    if (chk) chk.checked = isReviewed;
+    if (badge) {
+      if (isReviewed) {
+        badge.className = 'form-check-label badge bg-success-lt';
+        badge.textContent = 'Проверено ✓';
+      } else {
+        badge.className = 'form-check-label badge bg-secondary-lt';
+        badge.textContent = 'На проверке';
+      }
+    }
+    if (row) {
+      row.classList.toggle('row-reviewed', isReviewed);
+      if (hideReviewed && isReviewed) {
+        row.style.display = 'none';
+        if (detailsRow) detailsRow.style.display = 'none';
+      } else {
+        row.style.display = '';
+        if (detailsRow) detailsRow.style.display = '';
+      }
+    }
+  }
+
+  function applyReviewedState() {
+    let count = 0;
+    document.querySelectorAll('.student-header-row').forEach(function(row) {
+      const uid = row.getAttribute('data-user-id');
+      const isReviewed = reviewedStudents.has(uid);
+      if (isReviewed) count++;
+      updateStudentRowVisual(uid, isReviewed);
+    });
+
+    document.querySelectorAll('.solution-reviewed-checkbox').forEach(function(chk) {
+      const key = chk.getAttribute('data-sol-key');
+      chk.checked = reviewedSolutions.has(key);
+    });
+
+    const counterBadge = document.getElementById('reviewedCounterBadge');
+    if (counterBadge) {
+      counterBadge.textContent = 'Проверено: ' + count;
+    }
+  }
+
+  document.querySelectorAll('.student-reviewed-checkbox').forEach(function(chk) {
+    chk.addEventListener('change', function(e) {
+      e.stopPropagation();
+      const uid = this.getAttribute('data-user-id');
+      if (this.checked) {
+        reviewedStudents.add(uid);
+        // Also check all child solutions
+        document.querySelectorAll('.solution-reviewed-checkbox[data-user-id="' + uid + '"]').forEach(function(sChk) {
+          sChk.checked = true;
+          reviewedSolutions.add(sChk.getAttribute('data-sol-key'));
+        });
+      } else {
+        reviewedStudents.delete(uid);
+        document.querySelectorAll('.solution-reviewed-checkbox[data-user-id="' + uid + '"]').forEach(function(sChk) {
+          sChk.checked = false;
+          reviewedSolutions.delete(sChk.getAttribute('data-sol-key'));
+        });
+      }
+      saveStorage();
+      applyReviewedState();
+    });
+  });
+
+  document.querySelectorAll('.solution-reviewed-checkbox').forEach(function(chk) {
+    chk.addEventListener('change', function(e) {
+      e.stopPropagation();
+      const key = this.getAttribute('data-sol-key');
+      const uid = this.getAttribute('data-user-id');
+      if (this.checked) {
+        reviewedSolutions.add(key);
+      } else {
+        reviewedSolutions.delete(key);
+      }
+
+      // If all child solutions checked -> mark student as reviewed
+      const allChild = document.querySelectorAll('.solution-reviewed-checkbox[data-user-id="' + uid + '"]');
+      const allChecked = Array.from(allChild).every(function(c) { return c.checked; });
+      if (allChecked) {
+        reviewedStudents.add(uid);
+      } else {
+        reviewedStudents.delete(uid);
+      }
+
+      saveStorage();
+      applyReviewedState();
+    });
+  });
+
+  const resetBtn = document.getElementById('btnResetReviewed');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function() {
+      if (confirm('Сбросить все отметки о проверке решений?')) {
+        reviewedStudents.clear();
+        reviewedSolutions.clear();
+        saveStorage();
+        applyReviewedState();
+      }
+    });
+  }
+
+  applyReviewedState();
+
+  // -------------------------------------------------------------
+  // 4. Live Flexible Groups Filtering (Any group toggleable, persistent)
+  // -------------------------------------------------------------
+  const GROUPS_DATA = {{ groups_payload | tojson | safe }} || [];
+  const pillsContainer = document.getElementById('groupPillsContainer');
+  const groupsBadge = document.getElementById('groupsCountBadge');
+  const searchInput = document.getElementById('groupSearchInput');
+  const emptyAlert = document.getElementById('groupsEmptyAlert');
+  const chartWrapper = document.getElementById('groups-chart-wrapper');
+
+  const STORAGE_KEY = 'sqladmin_selected_groups_v1';
+  let selectedGroupNames = new Set();
+
+  function loadInitialSelection() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const arr = JSON.parse(saved);
+        if (Array.isArray(arr)) {
+          selectedGroupNames = new Set(arr);
+          return;
+        }
+      }
+    } catch(e) {}
+    // Default: all non-test groups (or all if all are test)
+    const nonTest = GROUPS_DATA.filter(function(g) { return !g.is_test; });
+    const defaults = nonTest.length > 0 ? nonTest : GROUPS_DATA;
+    selectedGroupNames = new Set(defaults.map(function(g) { return g.name; }));
+  }
+
+  function saveSelection() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(selectedGroupNames)));
+    } catch(e) {}
+  }
+
+  function renderGroupPills() {
+    if (!pillsContainer) return;
+    pillsContainer.innerHTML = '';
+    const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+    GROUPS_DATA.forEach(function(g) {
+      const isVisible = !query || g.name.toLowerCase().includes(query);
+      if (!isVisible) return;
+
+      const isSelected = selectedGroupNames.has(g.name);
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'btn btn-xs ' + (isSelected ? 'btn-primary' : 'btn-outline-secondary') + ' text-truncate m-1';
+      pill.style.fontSize = '0.8rem';
+      pill.style.padding = '3px 8px';
+      pill.dataset.group = g.name;
+
+      const icon = isSelected ? '<i class="fa-solid fa-check me-1"></i>' : '<i class="fa-solid fa-plus me-1 text-muted"></i>';
+      const testTag = g.is_test ? ' <span class="badge bg-warning text-dark py-0 px-1 ms-1" style="font-size: 0.65rem;">тест</span>' : '';
+      const studInfo = (g.students_count ? g.students_count + ' ст.' : (g.submissions + ' сбм.'));
+
+      pill.innerHTML = icon + '<strong>' + escapeHtml(g.name) + '</strong> <span class="badge bg-white text-dark ms-1">' + studInfo + '</span>' + testTag;
+
+      pill.addEventListener('click', function() {
+        if (selectedGroupNames.has(g.name)) {
+          selectedGroupNames.delete(g.name);
+        } else {
+          selectedGroupNames.add(g.name);
+        }
+        saveSelection();
+        renderGroupPills();
+        updateGroupsChart();
+      });
+
+      pillsContainer.appendChild(pill);
+    });
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function updateGroupsChart() {
+    if (!GROUPS_DATA || !window.Plotly) return;
+    const filtered = GROUPS_DATA.filter(function(g) {
+      return selectedGroupNames.has(g.name);
+    });
+
+    if (groupsBadge) {
+      groupsBadge.textContent = 'Отображено: ' + filtered.length + ' из ' + GROUPS_DATA.length;
+    }
+
+    if (filtered.length === 0) {
+      if (emptyAlert) emptyAlert.classList.remove('d-none');
+      if (chartWrapper) chartWrapper.classList.add('opacity-25');
+    } else {
+      if (emptyAlert) emptyAlert.classList.add('d-none');
+      if (chartWrapper) chartWrapper.classList.remove('opacity-25');
+    }
+
+    const xNames = filtered.map(function(g) { return g.name; });
+    const yScores = filtered.map(function(g) { return g.avg_score; });
+    const ySubs = filtered.map(function(g) { return g.submissions; });
+
+    const groupsDiv = document.querySelector('#tab-groups .plotly-graph-div');
+    if (groupsDiv && groupsDiv.data && groupsDiv.data.length >= 2) {
+      Plotly.restyle(groupsDiv, { x: [xNames, xNames], y: [yScores, ySubs] }, [0, 1]);
+    }
+  }
+
+  // Buttons handlers
+  const btnAll = document.getElementById('btnSelectAllGroups');
+  if (btnAll) {
+    btnAll.addEventListener('click', function() {
+      selectedGroupNames = new Set(GROUPS_DATA.map(function(g) { return g.name; }));
+      saveSelection();
+      renderGroupPills();
+      updateGroupsChart();
+    });
+  }
+
+  const btnNone = document.getElementById('btnDeselectAllGroups');
+  if (btnNone) {
+    btnNone.addEventListener('click', function() {
+      selectedGroupNames.clear();
+      saveSelection();
+      renderGroupPills();
+      updateGroupsChart();
+    });
+  }
+
+  const btnClean = document.getElementById('btnHideTestGroups');
+  if (btnClean) {
+    btnClean.addEventListener('click', function() {
+      selectedGroupNames = new Set(
+        GROUPS_DATA.filter(function(g) { return !g.is_test; }).map(function(g) { return g.name; })
+      );
+      saveSelection();
+      renderGroupPills();
+      updateGroupsChart();
+    });
+  }
+
+  const btnInvert = document.getElementById('btnInvertGroups');
+  if (btnInvert) {
+    btnInvert.addEventListener('click', function() {
+      const inverted = new Set();
+      GROUPS_DATA.forEach(function(g) {
+        if (!selectedGroupNames.has(g.name)) inverted.add(g.name);
+      });
+      selectedGroupNames = inverted;
+      saveSelection();
+      renderGroupPills();
+      updateGroupsChart();
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', renderGroupPills);
+  }
+
+  loadInitialSelection();
+  renderGroupPills();
+  setTimeout(updateGroupsChart, 200);
+});
+</script>
 {% endblock %}

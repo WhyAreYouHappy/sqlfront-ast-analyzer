@@ -1,3 +1,4 @@
+import type { Edge, Node } from "@xyflow/react";
 import { AchievementSubmitType } from "./achievements-types";
 import { AnalysisPayloadType } from "./analysis-types";
 
@@ -50,6 +51,7 @@ export type TaskDataDtoType = {
     task_id: number | null,
   },
   difficulty?: string,
+  user_solution?: string,
 };
 
 export type ClueDtoType = {
@@ -84,4 +86,9 @@ export type SubmissionResultType = {
   data?: (number | string)[][];
   hint?: string;
   analysis?: AnalysisPayloadType | null;
+};
+
+export type DatabaseSchemaResponseType = {
+  nodes: Node[];
+  edges: Edge[];
 };

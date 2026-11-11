@@ -58,6 +58,26 @@ def get_quest_repository(db: AsyncSession = Depends(get_db)) -> QuestRepository:
     return QuestRepository(db)
 
 
+
+def sanitize_quest_query(query: str) -> str:
+    """Нормализация и очистка SQL-запроса перед валидацией и выполнением.
+    Удаляет хвостовые точки с запятой, пробелы, символы табуляции и переводы строк.
+    """
+    if not query:
+        return ""
+    cleaned = query.strip()
+    while cleaned and (
+        cleaned.endswith(";")
+        or cleaned.endswith(" ")
+        or cleaned.endswith("\n")
+        or cleaned.endswith("\r")
+        or cleaned.endswith("\t")
+    ):
+        cleaned = cleaned.rstrip("; \n\r\t").strip()
+    return cleaned
+
+
+
 def _extract_update_value(
         parsed_query: ParsedQuery,
         target_column: str | None,
@@ -228,6 +248,7 @@ async def run_quest_sql(
         raise HTTPException(status_code=400, detail="Неверная сцена для выполнения")
 
     try:
+
         expected_result = scene_data.get("expected_result") or {}
         if _is_update_scene(scene_data):
             update_policy, quality_policy = _configure_update_scene(scene_data)
@@ -310,6 +331,7 @@ async def submit_quest_solution(
             "message": "Задача уже решена"
         }
 
+    cleaned_query = sanitize_quest_query(request.sql_query)
     user_answer_value = ""
     is_correct = False
     feedback: tuple[str, ...] = ()
@@ -317,6 +339,7 @@ async def submit_quest_solution(
     analysis_payload = None
 
     try:
+
         if _is_update_scene(scene):
             expected_result = scene.get("expected_result") or {}
             target_column = expected_result.get("target_column")
@@ -435,6 +458,7 @@ async def submit_quest_solution(
                 user_answer=user_answer_value,
                 is_correct=is_correct,
             )
+
             await repo.mark_task_solved(current_user.user_id, quest_id, scene_id, request.sql_query)
             await scoring_service.add_points(
                 current_user.user_id,
