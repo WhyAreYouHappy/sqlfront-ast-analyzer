@@ -1,0 +1,97 @@
+@use "sass:color";
+
+.tableWrapper {
+  --height: 50vh;
+
+  max-height: var(--height);
+  overflow-y: auto;
+  overflow-x: auto;
+  max-width: 100%;
+  border-radius: 0.5vw;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(200, 50, 50, 0.8);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(200, 50, 50, 1);
+  }
+}
+
+.table {
+  font-family: 'Moscow Sans';
+  font-weight: 200;
+  font-size: 1vw;
+
+  width: 100%;
+
+  & td {
+    text-align: start;
+    padding: 0.5vw 0.5vw;
+  }
+
+  tbody {
+    & tr {
+      transition: background-color 0.3s ease;
+    }
+  }
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  & th {
+    text-align: start;
+    padding: 1vw 0.5vw;
+  }
+}
+
+.light {
+  color: $black-color;
+
+  tbody {
+    & tr:nth-of-type(2n + 1) {
+      background-color: $gray-light-color;
+    }
+
+    & tr:hover {
+      background-color: color.mix(white, $red-light-color, 40%);
+    }
+  }
+
+  .header {
+    background-color: white;
+  }
+}
+
+.dark {
+  color: $gray-light-color;
+
+  tbody {
+    & tr:nth-of-type(2n + 1) {
+      background-color: rgb(57, 57, 57, 0.5);
+    }
+
+    & tr:hover {
+      background-color: color.mix(rgb(57, 57, 57, 0.2), $red-light-color, 40%);
+    }
+  }
+
+  .header {
+    background-color: $black-color;
+  }
+}

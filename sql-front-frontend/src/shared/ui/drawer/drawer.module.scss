@@ -1,0 +1,42 @@
+.drawer {
+  --width: 25vw;
+  --padding: 2.3vw 1.5vw;
+
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 1100;
+
+  width: var(--width);
+  height: 100vh;
+  background-color: white;
+
+  padding: var(--padding);
+
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+
+  &.open {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 0;
+  right: 0.5vw;
+  padding: 0;
+
+  font-family: 'Moscow Sans';
+  font-weight: 200;
+  user-select: none;
+  line-height: 2vw;
+  font-size: 2.5vw;
+  color: $black-color;
+
+  border: none;
+  background: none;
+  cursor: pointer;
+}

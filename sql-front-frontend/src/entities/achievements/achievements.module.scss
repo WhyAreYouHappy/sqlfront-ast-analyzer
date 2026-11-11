@@ -1,0 +1,33 @@
+.achievements {
+  width: 80vw;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding-bottom: 5vw;;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.categoryBlock {
+  width: 65vw;
+  margin-bottom: 4vw;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.categoryBlockTitle {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding-bottom: 1vw;
+  border-bottom: 0.1vw solid $black-color;
+}
+
+.achievementsBlock {
+  & div:first-child {
+    border-top: none;
+  }
+}

@@ -1,0 +1,28 @@
+.categoryBlock {
+  width: 42vw;
+  margin-bottom: 4vw;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.categoryBlockTitle {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  padding-bottom: 1vw;
+  border-bottom: 0.1vw solid $black-color;
+}
+
+.achievementsBlock {
+  & div:first-child {
+    border-top: none;
+  }
+}
+
+.achievements {
+  max-height: 70vh;
+  overflow-y: auto;
+  margin-top: 4vw;
+}

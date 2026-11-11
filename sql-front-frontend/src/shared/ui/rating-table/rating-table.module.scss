@@ -1,0 +1,38 @@
+.ratingTable {
+  margin-right: 0.9vw;
+  width: 85.2vw;
+  font-size: 1.5vw;
+  font-family: 'Buran USSR';
+  color: $black-color;
+  user-select: none;
+
+  tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    height: 3vw;
+    border-top: solid $black-color 0.1vw;
+
+    td:first-child {
+      width: 10%;
+      padding: 1vw;
+    }
+    
+    td:nth-child(2) {
+      width: 80%;
+      font-size: 1vw;
+      font-family: 'Moscow Sans';
+      justify-self: start;
+    }
+
+    td:last-child {
+      width: 10%;
+      justify-self: start;
+    }
+  }
+}
+
+.highlightedRow {
+  background-color: $gray-light-color;
+}

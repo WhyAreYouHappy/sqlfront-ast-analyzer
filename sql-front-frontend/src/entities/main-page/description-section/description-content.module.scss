@@ -1,0 +1,34 @@
+.descriptionContent {
+  display: grid;
+  grid-template-columns: 35vw 45vw;
+  grid-template-rows: 5vw 20vw;
+  grid-template-areas:
+    "line image"
+    "text image";
+  column-gap: calc(20vw / 3);
+  margin: 0 calc(20vw / 3);
+}
+
+.line {
+  grid-area: line;
+  width: 100%;
+  height: 0.8vw;
+  background-color: $red-color;
+}
+
+.image {
+  grid-area: image;
+  width: 100%;
+  height: 100%;
+  background-image: url('/images/description-image.png');
+  background-size: 110%;
+  background-position: top 75% center;
+  background-repeat: no-repeat;
+}
+
+.textArea {
+  width: 100%;
+  grid-area: text;
+  display: flex;
+  flex-direction: column;
+}

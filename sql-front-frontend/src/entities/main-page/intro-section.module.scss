@@ -1,0 +1,56 @@
+.introSection {
+  background-image: url('/images/main-page-background.png');
+  background-size: cover;
+  background-position: top 9vw center;
+  background-repeat: no-repeat;
+  background-attachment: local;
+  min-height: 100vh;
+  position: relative;
+}
+
+.menuBlock {
+  position: absolute;
+  top: 1vw;
+  right: 5vw;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4vw;
+
+  a {
+    display: block;
+    width: fit-content;
+    min-width: 10vw;
+    box-sizing: border-box;
+    padding: 0.5vw 1vw;
+    color: $gray-light-color;
+    background-color: $red-color;
+    clip-path: polygon(7% 0, 100% 0, 93% 100%, 0 100%);
+    text-align: center;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+
+    &:hover {
+      color: $gray-light-color;
+      background-color: $black-color;
+      text-decoration: none;
+      transform: translateX(-0.2vw);
+    }
+
+  }
+}
+
+.title {
+  display: block;
+  margin: 4.5vw 0 0 3.5vw;
+}
+
+.subTitle { 
+  display: block;
+  font-size: 13.5vw;
+  margin: 1vw 0 0 1.7vw;
+}
+
+.textLink {
+  color: inherit;
+  text-decoration: none;
+}

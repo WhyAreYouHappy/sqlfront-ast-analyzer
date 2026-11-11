@@ -1,0 +1,15 @@
+.select {
+  font-family: 'Moscow Sans';
+  font-weight: 200;
+  font-size: 1vw;
+
+  user-select: none;
+  cursor: pointer;
+
+  border: 0.1vw solid $black-color;
+  border-radius: 5vw;
+  padding: 0.3vw;
+
+  width: 15vw;
+  outline: none;
+}

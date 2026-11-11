@@ -1,0 +1,46 @@
+.startGuideSection {
+  background-color: $red-color;
+  min-height: 100vh;
+}
+
+.listElement {
+  display: list-item;
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.displayBlock {
+  display: block;
+}
+
+.codeBlock {
+  margin: 6vw 0 8vw
+}
+
+.exampleCode {
+  width: 87.5vw;
+  span {
+    user-select: none;
+  }
+}
+
+.textScrolling {
+  display: inline-block;
+  white-space: nowrap;
+
+  animation-name: scrollingAnimation;
+  animation-fill-mode: both;
+  animation-timing-function: linear;
+  animation-duration: 1ms;
+  
+  animation-timeline: scroll(root block);
+}
+
+@keyframes scrollingAnimation {
+  from {
+    transform: translateX(100vw);
+  }
+  to {
+    transform: translateX(1vw);
+  }
+}

@@ -1,0 +1,11 @@
+.layout {
+  overflow-x: hidden;
+  overflow-y: auto;
+  height: 100%;
+  width: 100%;
+  min-width: 100%;
+  background-color: #fff;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}

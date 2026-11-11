@@ -1,0 +1,41 @@
+.card {
+  min-width: 5vw;
+  border: 0.1vw solid $gray-light-color;
+  border-radius: 1.5vw;
+  background: white;
+  padding: 0.8vw;
+  cursor: default;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.innerContent {
+  padding: 0.2vw 0.2vw;
+}
+
+.rowsBlock {
+  margin-top: 1vw;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.handle {
+  background: $black-color;
+  width: 0.4vw;
+  height: 0.4vw;
+}
+
+.handleTarget {
+  left: -1.05vw;
+}
+
+.handleSource {
+  right: -1.05vw;
+}

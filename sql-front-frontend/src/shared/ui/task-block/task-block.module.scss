@@ -1,0 +1,30 @@
+.taskBlockContainer {
+  min-width: 80%;
+  min-height: 10%;
+}
+
+.codeWindow {
+  margin: 2vw 0;
+  font-size: 1vw;
+}
+
+.spaceBetween {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.buttonsLeftWidth {
+  width: 13vw;
+}
+
+.resultHeader {
+  margin: 2vw 0;
+}
+
+.toMissionsButtonContainer {
+  margin-top: 1vw;
+  display: flex;
+  justify-content: center;
+}

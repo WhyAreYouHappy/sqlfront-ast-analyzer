@@ -1,0 +1,59 @@
+.image {
+  --imageHref: "";
+
+  position: relative;
+  height: 25vw;
+  width: 35vw;
+
+  background-image: linear-gradient($black-color, $black-color), var(--imageHref);
+  background-blend-mode: saturation;
+
+  background-size: cover;
+  background-repeat: no-repeat;
+
+  border-radius: 5vw;
+
+  transition: all 0.3s ease-in-out;
+
+  cursor: pointer;
+
+  &:hover {
+    transform: scale(1.01);
+    box-shadow: 0 0 1vw #6b6b6b;
+  }
+}
+
+.disabled {
+  pointer-events: none;
+  cursor: default;
+
+  box-shadow: none;
+  transform: none;
+
+  overflow: hidden;
+
+  &::before {
+    content: "";
+    
+    z-index: 1;
+  }
+
+  &::after {
+    content: "ПРОЙДЕНО";
+    color: white;
+    background-color: $red-color;
+
+    position: absolute;
+    top: 69%;
+    left: 39%;
+
+    transform: rotate(-38deg);
+    font-size: 4vw;
+    font-family: "Buran USSR";
+    letter-spacing: -1px;
+
+    filter: none;
+    width: 29vw;
+    text-align: center;
+  }
+}

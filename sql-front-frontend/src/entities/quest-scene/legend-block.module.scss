@@ -1,0 +1,41 @@
+.legendContainer {
+  position: absolute;
+  top: 70%;
+
+  width: 80%;
+  min-height: 5%;
+
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.5) 50%,
+    transparent 100%
+  );
+  padding: 5vw 0;
+  cursor: pointer;
+}
+
+.cursor {
+  display: inline-block;
+}
+
+.cursorBlink {
+  margin-left: 0.2vw;
+  animation: blink 0.7s infinite;
+}
+
+@keyframes blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.arrow {
+  margin-left: 0.2vw;
+}

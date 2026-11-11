@@ -1,0 +1,27 @@
+.task {
+  background-color: white;
+  width: 90vw;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 1.8vw 0;
+}
+
+.spaceBetween {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.buttonsLeftWidth {
+  width: 13vw;
+}
+
+.codeWindow {
+  margin: 2vw 0;
+  font-size: 1vw;
+}
+
+.resultHeader {
+  margin: 2vw 0;
+}

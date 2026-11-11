@@ -1,0 +1,14 @@
+/** Add fonts */
+@font-face {
+  font-family: 'Buran USSR';
+  src: url('/fonts/BuranUSSR.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Moscow Sans';
+  src: url('/fonts/moscowsans.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}

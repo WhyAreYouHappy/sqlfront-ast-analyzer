@@ -1,0 +1,48 @@
+.form {
+  position: absolute;
+  top: 10vw;
+  right: 2vw;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2vw;
+
+  --text-color: inherit;
+  --underline-color: $black-color;
+  --underline-focus-color: $red-color;
+
+  .inputWrapper {
+    position: relative;
+    display: grid;
+    grid-template-columns: 5vw 25vw;
+    grid-template-rows: auto auto;
+    row-gap: 0.6vw;
+
+    label {
+      font-family: 'Moscow Sans';
+      font-weight: 400;
+      color: var(--text-color);
+      font-size: 1vw;
+      user-select: none;
+      padding-top: 0.2vw;
+    }
+
+    input {
+      font-family: 'Moscow Sans';
+      font-weight: 400;
+      color: var(--text-color);
+      font-size: 1vw;
+
+      outline: none;
+      border: none;
+      border-bottom: 0.1vw solid var(--underline-color);
+      background-color: transparent;
+      transition: border 0.3s ease;
+
+      &:focus {
+        outline: 0;
+        border-bottom: 0.1vw solid var(--underline-focus-color);
+      }
+    }
+  }
+}

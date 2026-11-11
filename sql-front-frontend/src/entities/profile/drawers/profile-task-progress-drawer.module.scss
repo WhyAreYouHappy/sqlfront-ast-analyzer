@@ -1,0 +1,26 @@
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 2vw;
+
+  margin-top: 10vw;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-right: 4vw;
+
+  &> :nth-child(1) {
+    width: 5vw;
+  }
+
+  &> :nth-child(2) {
+    width: 26vw;
+  }
+
+  &> :nth-child(3) {
+    width: 3vw;
+  }
+}

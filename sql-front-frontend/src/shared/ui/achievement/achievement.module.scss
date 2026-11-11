@@ -1,0 +1,28 @@
+.achievement {
+  display: flex;
+  gap: 1vw;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 0.1vw solid $black-color;
+  padding: 0.5vw 0;
+
+  &:hover .description {
+    opacity: 1;
+  }
+}
+
+.textBlock {
+  width: calc(100% - 5vw);
+}
+
+.description {
+  opacity: 0;
+  overflow: hidden;
+  padding-top: 0.5vw;
+  transition: opacity 1s ease;
+}
+
+.isAchievedContainer { 
+  display: flex;
+  align-items: center;
+}
